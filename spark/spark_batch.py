@@ -5,7 +5,7 @@ from pyspark.sql.functions import avg, date_format, col, desc
 # create a SparkSession
 # spark.sparkContext.addPyFile("path/to/postgresql-<version>.jar")
 conf = SparkConf().setAppName("PostgresBatch") \
-                  .set("spark.jars", "/home/rohan/dev/dbt_project/drivers/postgresql-42.6.0.jar")  # Change path as relevent
+                  .set("spark.jars", "/opt/bitnami/spark/drivers/postgresql-42.6.0.jar")
 
 # Create a SparkSession with the specified configuration properties
 
@@ -16,13 +16,13 @@ spark.conf
 
 
 # define connection properties
-url = "jdbc:postgresql://localhost:5432/dbt"
+url = "jdbc:postgresql://postgres:5432/dbt"  # Using service name instead of localhost
 user = "rohan"
 password = "rohan"
 
 # define the query to fetch data
 
-# read data from MySQL database
+# read data from PostgreSQL database
 df = spark.read \
     .format("jdbc") \
     .option("url", url) \

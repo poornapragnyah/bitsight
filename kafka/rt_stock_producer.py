@@ -1,10 +1,10 @@
 import json
-import sys
 import time
 from datetime import datetime
 from threading import Thread
 
 import websocket
+from websocket._app import WebSocketApp
 
 from kafka import KafkaProducer
 
@@ -53,10 +53,10 @@ def on_open(ws) -> None:
 
 
 if __name__ == "__main__":
-    # websocket.enableTrace(True)
     ws = websocket.WebSocketApp("wss://ws.finnhub.io?token=ch71859r01qhmmunvi50ch71859r01qhmmunvi5g",
                                 on_message=on_message,
                                 on_error=on_error,
                                 on_close=on_close)
     ws.on_open = on_open
     ws.run_forever()
+

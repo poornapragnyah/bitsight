@@ -19,11 +19,16 @@ conf = SparkConf().setAppName("KafkaStreamReader") \
                   .set("spark.sql.shuffle.partitions", "2") \
                   .set("spark.sql.streaming.checkpointLocation", "/tmp/checkpoint") \
                   .set("spark.jars.packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.2.0") \
-                  .set("spark.jars.packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.2.0")
+                  .set("spark.executor.memory", "1g") \
+                  .set("spark.driver.memory", "1g") \
+                  .set("spark.memory.offHeap.enabled", "true") \
+                  .set("spark.memory.offHeap.size", "1g")
 
 # Create a SparkSession with the specified configuration properties
-
-spark = SparkSession.builder.config(conf=conf).config("spark.driver.log", "spark_streaming.log").getOrCreate()
+spark = SparkSession.builder \
+    .config(conf=conf) \
+    .config("spark.driver.log", "spark_streaming.log") \
+    .getOrCreate()
 
 
 # Create a SparkSession

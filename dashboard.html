@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bitcoin Analysis Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-4xl font-bold text-center mb-8 text-gray-800">Bitcoin Price Analysis Dashboard</h1>
+        
+        <!-- Real-time Data Section -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-2xl font-semibold mb-4 text-gray-700">Real-time Price</h2>
+                <div class="text-4xl font-bold text-green-600" id="current-price">$0.00</div>
+                <div class="text-sm text-gray-500 mt-2" id="last-update">Last updated: --:--:--</div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-2xl font-semibold mb-4 text-gray-700">Volume in Last 10s</h2>
+                <div class="text-4xl font-bold text-blue-600" id="current-volume">0.00 BTC</div>
+                <div class="text-sm text-gray-500 mt-2">Window: <span id="current-window">--:-- - --:--</span></div>
+            </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-2xl font-semibold mb-4 text-gray-700">Price Trend (Last 5 Minutes)</h2>
+                <div class="w-full" style="height: 300px;">
+                    <canvas id="priceChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-2xl font-semibold mb-4 text-gray-700">Volume Trend (Last 5 Minutes)</h2>
+                <div class="w-full" style="height: 300px;">
+                    <canvas id="volumeChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Batch Processing Results -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <h2 class="text-2xl font-semibold mb-4 text-gray-700">Historical Analysis</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <h3 class="text-lg font-medium text-gray-600">Price Statistics</h3>
+                    <div class="mt-2 space-y-2">
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Average Price:</span>
+                            <span class="font-semibold" id="batch-avg-price">$0.00</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Minimum Price:</span>
+                            <span class="font-semibold" id="batch-min-price">$0.00</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Maximum Price:</span>
+                            <span class="font-semibold" id="batch-max-price">$0.00</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Price Volatility:</span>
+                            <span class="font-semibold" id="batch-price-stddev">$0.00</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <h3 class="text-lg font-medium text-gray-600">Volume Statistics</h3>
+                    <div class="mt-2 space-y-2">
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Total Volume:</span>
+                            <span class="font-semibold" id="batch-total-volume">0.00 BTC</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Average Volume:</span>
+                            <span class="font-semibold" id="batch-avg-volume">0.00 BTC</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Minimum Volume:</span>
+                            <span class="font-semibold" id="batch-min-volume">0.00 BTC</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Maximum Volume:</span>
+                            <span class="font-semibold" id="batch-max-volume">0.00 BTC</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Total Records:</span>
+                            <span class="font-semibold" id="batch-total-records">0</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Data Range:</span>
+                            <span class="font-semibold" id="batch-time-range">--:-- - --:--</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize charts with fixed scales
+        const priceCtx = document.getElementById('priceChart').getContext('2d');
+        const volumeCtx = document.getElementById('volumeChart').getContext('2d');
+
+        // Store last 30 data points
+        let priceData = [];
+        let volumeData = [];
+        let labels = [];
+
+        // Function to calculate price range
+        function calculatePriceRange() {
+            if (priceData.length === 0) return { min: 0, max: 0 };
+            
+            const min = Math.min(...priceData);
+            const max = Math.max(...priceData);
+            const range = max - min;
+            const mid = (min + max) / 2;
+            
+            // Add 20% padding to the range, centered around the middle
+            return {
+                min: Math.floor(mid - (range * 0.6)), // 60% below middle
+                max: Math.ceil(mid + (range * 0.6))   // 60% above middle
+            };
+        }
+
+        const priceChart = new Chart(priceCtx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Price (USD)',
+                    data: priceData,
+                    borderColor: 'rgb(75, 192, 192)',
+                    tension: 0.1,
+                    fill: false,
+                    pointRadius: 2,
+                    pointHoverRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                layout: {
+                    padding: {
+                        top: 10,
+                        right: 10,
+                        bottom: 10,
+                        left: 10
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        grid: {
+                            display: true,
+                            color: 'rgba(0, 0, 0, 0.1)'
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return '$' + value.toFixed(2);
+                            },
+                            maxTicksLimit: 6,
+                            stepSize: function() {
+                                const range = calculatePriceRange();
+                                return Math.ceil((range.max - range.min) / 6);
+                            }
+                        },
+                        min: function() {
+                            return calculatePriceRange().min;
+                        },
+                        max: function() {
+                            return calculatePriceRange().max;
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            maxRotation: 45,
+                            minRotation: 45,
+                            maxTicksLimit: 6
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            boxWidth: 12,
+                            padding: 10
+                        }
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            label: function(context) {
+                                return '$' + context.parsed.y.toFixed(2);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        const volumeChart = new Chart(volumeCtx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Volume (BTC)',
+                    data: volumeData,
+                    backgroundColor: 'rgb(54, 162, 235)',
+                    barPercentage: 0.8,
+                    categoryPercentage: 0.9,
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                layout: {
+                    padding: {
+                        top: 10,
+                        right: 10,
+                        bottom: 10,
+                        left: 10
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            display: true,
+                            color: 'rgba(0, 0, 0, 0.1)'
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return value.toFixed(4) + ' BTC';
+                            },
+                            maxTicksLimit: 6
+                        },
+                        min: 0,
+                        max: function() {
+                            const max = Math.max(...volumeData);
+                            return max * 1.2; // 20% above max for better visibility
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            maxRotation: 45,
+                            minRotation: 45,
+                            maxTicksLimit: 6
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            boxWidth: 12,
+                            padding: 10
+                        }
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            label: function(context) {
+                                return context.parsed.y.toFixed(4) + ' BTC';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // WebSocket connection for real-time updates
+        const ws = new WebSocket('ws://localhost:8081/ws?table=stock_aggregates_new');
+
+        function updateCharts(data) {
+            try {
+                const timestamp = data.window.end;
+                
+                // Validate data
+                if (typeof data.price !== 'number' || typeof data.volume !== 'number') {
+                    console.error('Invalid data received:', data);
+                    return;
+                }
+                
+                // Add new data point
+                priceData.push(data.price);
+                volumeData.push(data.volume);
+                labels.push(timestamp);
+                
+                // Keep only last 30 data points
+                if (priceData.length > 30) {
+                    priceData.shift();
+                    volumeData.shift();
+                    labels.shift();
+                }
+                
+                // Update chart data with proper data binding
+                priceChart.data.datasets[0].data = [...priceData];
+                volumeChart.data.datasets[0].data = [...volumeData];
+                priceChart.data.labels = [...labels];
+                volumeChart.data.labels = [...labels];
+                
+                // Update both charts
+                priceChart.update('none');
+                volumeChart.update('none');
+                
+                // Log data for debugging
+                console.log('Updated charts with:', {
+                    price: data.price,
+                    volume: data.volume,
+                    timestamp: timestamp,
+                    priceDataLength: priceData.length,
+                    volumeDataLength: volumeData.length
+                });
+            } catch (error) {
+                console.error('Error updating charts:', error);
+            }
+        }
+
+        ws.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            
+            if (data.type === 'realtime') {
+                // Update current price and volume
+                document.getElementById('current-price').textContent = `$${data.data.price.toFixed(2)}`;
+                document.getElementById('current-volume').textContent = `${data.data.volume.toFixed(4)} BTC`;
+                document.getElementById('current-window').textContent = `${data.data.window.start} - ${data.data.window.end}`;
+                document.getElementById('last-update').textContent = `Last updated: ${new Date().toLocaleTimeString()}`;
+
+                // Update charts
+                updateCharts(data.data);
+            } else if (data.type === 'batch') {
+                updateBatchResults(data.data);
+            } else if (data.type === 'streaming') {
+                updateStreamingMetrics(data.data);
+            }
+        };
+
+        // Function to update batch processing results
+        function updateBatchResults(data) {
+            // Update price statistics
+            document.getElementById('batch-avg-price').textContent = `$${data.average_price.toFixed(2)}`;
+            document.getElementById('batch-min-price').textContent = `$${data.min_price.toFixed(2)}`;
+            document.getElementById('batch-max-price').textContent = `$${data.max_price.toFixed(2)}`;
+            document.getElementById('batch-price-stddev').textContent = `$${data.price_stddev.toFixed(2)}`;
+            
+            // Update volume statistics
+            document.getElementById('batch-total-volume').textContent = `${data.total_volume.toFixed(4)} BTC`;
+            document.getElementById('batch-avg-volume').textContent = `${data.average_volume.toFixed(4)} BTC`;
+            document.getElementById('batch-min-volume').textContent = `${data.min_volume.toFixed(4)} BTC`;
+            document.getElementById('batch-max-volume').textContent = `${data.max_volume.toFixed(4)} BTC`;
+            document.getElementById('batch-total-records').textContent = data.total_records;
+            
+            // Format the date range in DD/MM/YY format
+            const startDate = new Date(data.start_datetime);
+            const endDate = new Date(data.end_datetime);
+            
+            const formatDate = (date) => {
+                const day = String(date.getDate()).padStart(2, '0');
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const year = String(date.getFullYear()).slice(-2);
+                const hours = String(date.getHours()).padStart(2, '0');
+                const minutes = String(date.getMinutes()).padStart(2, '0');
+                return `${day}/${month}/${year} ${hours}:${minutes}`;
+            };
+            
+            document.getElementById('batch-time-range').textContent = 
+                `${formatDate(startDate)} - ${formatDate(endDate)}`;
+        }
+
+        // Function to update streaming processing metrics
+        function updateStreamingMetrics(data) {
+            document.getElementById('stream-avg-time').textContent = `${data.avg_processing_time.toFixed(2)}ms`;
+            document.getElementById('stream-records').textContent = data.total_records;
+        }
+
+        // Handle WebSocket connection errors
+        ws.onerror = function(error) {
+            console.error('WebSocket Error:', error);
+        };
+
+        ws.onclose = function() {
+            console.log('WebSocket Connection Closed');
+        };
+
+        function updateRealTimeData(data) {
+            if (data.price) {
+                document.getElementById('current-price').textContent = `$${data.price.toFixed(2)}`;
+                document.getElementById('current-volume').textContent = `${data.volume.toFixed(4)} BTC`;
+                document.getElementById('current-window').textContent = `${data.window.start} - ${data.window.end}`;
+                document.getElementById('last-update').textContent = `Last updated: ${new Date().toLocaleTimeString()}`;
+            }
+        }
+    </script>
+</body>
+</html> 

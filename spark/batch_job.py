@@ -17,12 +17,17 @@ logging.basicConfig(
 # Set Spark configuration properties
 conf = SparkConf().setAppName("PostgresBatch") \
                   .set("spark.sql.shuffle.partitions", "1") \
-                  .set("spark.executor.memory", "1g") \
-                  .set("spark.driver.memory", "1g") \
+                  .set("spark.executor.memory", "512m") \
+                  .set("spark.driver.memory", "512m") \
                   .set("spark.executor.cores", "1") \
                   .set("spark.executor.instances", "1") \
                   .set("spark.driver.extraClassPath", "/opt/bitnami/spark/drivers/postgresql-42.6.0.jar") \
-                  .set("spark.executor.extraClassPath", "/opt/bitnami/spark/drivers/postgresql-42.6.0.jar")
+                  .set("spark.executor.extraClassPath", "/opt/bitnami/spark/drivers/postgresql-42.6.0.jar") \
+                  .set("spark.dynamicAllocation.enabled", "false") \
+                  .set("spark.cores.max", "1") \
+                  .set("spark.task.cpus", "1") \
+                  .set("spark.sql.adaptive.enabled", "true") \
+                  .set("spark.sql.adaptive.coalescePartitions.enabled", "true")
 
 # Create a SparkSession with the specified configuration properties
 spark = SparkSession.builder \

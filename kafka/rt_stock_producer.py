@@ -1,6 +1,6 @@
 import json
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from threading import Thread
 
 import websocket
@@ -19,7 +19,11 @@ def send_to_kafka(message):
     if not parsed.get("data", None):
         return
     for entry in parsed["data"]:
-        entry["datetime"] = str(datetime.fromtimestamp(entry["t"]/1000))
+        # Convert Unix timestamp (in ms) to UTC datetime
+        utc_dt = datetime.fromtimestamp(entry["t"]/1000, tz=timezone.utc)
+        # Convert to local timezone
+        local_dt = utc_dt.astimezone()
+        entry["datetime"] = local_dt.strftime("%Y-%m-%d %H:%M:%S.%f")
 
         del entry["t"]
 

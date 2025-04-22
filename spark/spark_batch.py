@@ -23,12 +23,17 @@ spark = SparkSession.builder \
     .appName("PostgresBatch") \
     .config("spark.sql.shuffle.partitions", "1") \
     .config("spark.jars", "/opt/bitnami/spark/drivers/postgresql-42.6.0.jar") \
-    .config("spark.driver.memory", "1g") \
-    .config("spark.executor.memory", "1g") \
+    .config("spark.driver.memory", "512m") \
+    .config("spark.executor.memory", "512m") \
     .config("spark.driver.cores", "1") \
     .config("spark.executor.cores", "1") \
     .config("spark.driver.log", "spark_batch.log") \
     .config("spark.executor.log", "spark_batch.log") \
+    .config("spark.dynamicAllocation.enabled", "false") \
+    .config("spark.cores.max", "1") \
+    .config("spark.task.cpus", "1") \
+    .config("spark.sql.adaptive.enabled", "true") \
+    .config("spark.sql.adaptive.coalescePartitions.enabled", "true") \
     .getOrCreate()
 
 try:

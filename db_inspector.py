@@ -110,6 +110,18 @@ def check_db_size(conn):
     except Exception as e:
         print(f"Error checking database size: {e}")
 
+def truncate_table(conn, table_name):
+    """Truncate a table"""
+    try:
+        cur = conn.cursor()
+        cur.execute(f"TRUNCATE TABLE {table_name} RESTART IDENTITY CASCADE")
+        conn.commit()
+        print(f"\nTable {table_name} has been truncated successfully.")
+        cur.close()
+    except Exception as e:
+        print(f"Error truncating table: {e}")
+        conn.rollback()
+
 def main():
     """Main menu function"""
     conn = connect_to_db()
@@ -121,9 +133,10 @@ def main():
         print("3. Check table schema")
         print("4. Run custom SQL query")
         print("5. Check database size")
-        print("6. Exit")
+        print("6. Truncate table")
+        print("7. Exit")
         
-        choice = input("\nEnter your choice (1-6): ")
+        choice = input("\nEnter your choice (1-7): ")
         
         if choice == '1':
             list_tables(conn)
@@ -156,6 +169,22 @@ def main():
         elif choice == '5':
             check_db_size(conn)
         elif choice == '6':
+            tables = list_tables(conn)
+            if tables:
+                table_choice = input("\nEnter table number to truncate: ")
+                try:
+                    table_index = int(table_choice) - 1
+                    if 0 <= table_index < len(tables):
+                        confirm = input(f"Are you sure you want to truncate {tables[table_index]}? (yes/no): ")
+                        if confirm.lower() == 'yes':
+                            truncate_table(conn, tables[table_index])
+                        else:
+                            print("Operation cancelled.")
+                    else:
+                        print("Invalid table number.")
+                except ValueError:
+                    print("Please enter a valid number.")
+        elif choice == '7':
             print("Exiting...")
             break
         else:

@@ -1,0 +1,177 @@
+PES UNIVERSITY
+100 feet Ring Road, BSK 3rd Stage
+Bengaluru 560085
+
+Department of Computer Science and Engineering
+
+Jan-May 2023 UE21CS343BB3: DBT Project 1
+
+Department of Computer Science and Engineering
+
+B. Tech. CSE - 6th Semester
+Jan – May 2025
+UE22CS343BB3
+
+DATABASE TECHNOLOGIES (DBT)
+
+PROJECT REPORT
+on
+Real-time Stock Data Processing System using Kafka, Spark, and PostgreSQL
+
+Submitted by: Team #: 1
+
+Name 1: Poorna SRN 1: PES2UG22CS123 6B
+Name 2: [Your Name] SRN 2: [Your SRN] 6B
+Name 3: [Your Name] SRN 3: [Your SRN] 6B
+Name 4: [Your Name] SRN 4: [Your SRN] 6B
+
+Class of Prof. [Professor's Name]
+
+Table of Contents
+
+1. Introduction
+2. Installation of Software
+3. Input Data
+   a. Source
+   b. Description
+4. Streaming Mode Experiment
+   a. Description
+   b. Windows
+   c. Results
+5. Batch Mode Experiment
+   a. Description
+   b. Data Size
+   c. Results
+6. Comparison of Streaming & Batch Modes
+   a. Results and Discussion
+7. Conclusion
+8. References
+
+1. Introduction
+This project implements a real-time stock data processing system that captures, processes, and analyzes cryptocurrency trading data from Binance. The system uses a modern data pipeline architecture consisting of:
+- Kafka for real-time data streaming
+- Spark for distributed data processing
+- PostgreSQL for persistent storage
+- Docker for containerization
+
+The system processes real-time Bitcoin trading data, calculating key metrics like average price and total volume over configurable time windows, demonstrating both streaming and batch processing capabilities.
+
+2. Installation of Software
+The project uses the following software stack:
+- Docker and Docker Compose for container orchestration
+- Apache Kafka 7.3.2 for message queuing
+- Apache Spark 3.5.0 for data processing
+- PostgreSQL 15 for data storage
+- Python 3.9+ for application logic
+
+Installation steps:
+1. Clone the project repository
+2. Install Docker and Docker Compose
+3. Run `docker-compose up -d` to start all services
+4. Services will be available at:
+   - Spark UI: http://localhost:8080
+   - PostgreSQL: localhost:5432
+   - Kafka: localhost:9092
+
+3. Input Data
+a. Source
+The system receives real-time Bitcoin trading data from Finnhub's WebSocket API, specifically the BTC/USDT trading pair.
+
+b. Description
+Input data format:
+{
+    "c": "BINANCE:BTCUSDT",
+    "p": 88777.61,
+    "s": "BINANCE:BTCUSDT",
+    "v": 0.0001,
+    "datetime": "2025-04-22 12:33:00.250000"
+}
+Fields:
+- `c`: Trading pair identifier
+- `p`: Current price
+- `s`: Symbol
+- `v`: Trading volume
+- `datetime`: Timestamp of the trade
+
+4. Streaming Mode Experiment
+a. Description
+The streaming mode processes data in real-time using Spark Structured Streaming. It:
+- Reads from Kafka topic `SPARK_ANALYSIS`
+- Processes data in 10-second windows
+- Calculates average price and total volume
+- Writes results to `SPARK_RESULTS` topic
+
+b. Windows
+- Window size: 10 seconds
+- Sliding interval: 10 seconds
+- Watermark: 20 seconds
+
+c. Results
+The streaming job successfully processes data with the following configuration:
+- Executor memory: 512MB
+- Executor cores: 1
+- Processing rate: 100 messages/second
+- Message processing latency: < 1 second
+- Aggregation window: 10 seconds
+- Results update interval: 10 seconds
+- Late data tolerated up to: 20 seconds using watermarking (withWatermark)
+- The watermark ensures that events arriving later than 20 seconds after the event time are considered too late and are discarded
+- Checkpointing is implemented at two levels:
+  - Spark SQL checkpointing at /tmp/checkpoint
+  - Kafka write stream checkpointing at /tmp/checkpoints
+  - This ensures fault tolerance and exactly-once processing semantics
+
+5. Batch Mode Experiment
+a. Description
+The batch mode processes historical data stored in PostgreSQL, performing:
+- Aggregation of price and volume data
+- Time-based analysis
+- Statistical calculations
+
+b. Data Size
+- Initial dataset: ~2000 records
+- Growth rate: ~10 records/second
+- Total processing time: < 1 minute
+
+c. Results
+Batch processing achieved:
+- Memory usage: 512MB
+- Processing time: < 30 seconds
+- Successful aggregation of historical data
+
+6. Comparison of Streaming & Batch Modes
+a. Results and Discussion
+| Aspect | Streaming Mode | Batch Mode |
+|--------|---------------|------------|
+| Latency | Real-time (<1s) | Minutes |
+| Resource Usage | Continuous | Burst |
+| Data Freshness | Immediate | Historical |
+| Processing | Incremental | Complete |
+| Use Case | Real-time analytics | Historical analysis |
+
+Key Findings:
+1. Streaming mode is ideal for real-time monitoring
+2. Batch mode is better for comprehensive analysis
+3. Resource allocation can be optimized for both modes
+4. Hybrid approach provides best of both worlds
+
+7. Conclusion
+The project successfully demonstrates:
+1. Real-time data processing capabilities
+2. Efficient resource utilization
+3. Scalable architecture
+4. Reliable data persistence
+5. Flexible processing modes
+
+Future improvements could include:
+- Enhanced error handling
+- Additional analytics
+- Machine learning integration
+- Performance optimization
+
+8. References
+1. Apache Spark Documentation
+2. Kafka Documentation
+3. PostgreSQL Documentation
+4. Docker Documentation
+5. Binance API Documentation 

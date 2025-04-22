@@ -29,6 +29,7 @@ cleanup() {
     pkill -f "python kafka/rt_stock_producer.py"
     pkill -f "python kafka/persist_db_consumer.py"
     pkill -f "python websocket_server.py"
+    pkill -f "python kafka/results_consumer.py"
     # Stop Docker containers
     docker compose down
     exit 0
@@ -44,7 +45,7 @@ docker compose up -d
 sleep 5
 # Wait for PostgreSQL to be ready
 echo "Waiting for PostgreSQL to be ready..."
-until docker exec bitsight-postgres-1 pg_isready -U poorna; do
+until docker exec bitsight-postgres pg_isready -U poorna; do
     echo "PostgreSQL is unavailable - sleeping"
     sleep 2
 done
@@ -77,6 +78,11 @@ echo "Starting Kafka consumer..."
 python kafka/persist_db_consumer.py &
 CONSUMER_PID=$!
 
+# Start Kafka results consumer in the background
+echo "Starting Kafka results consumer..."
+python kafka/results_consumer.py &
+RESULTS_CONSUMER_PID=$!
+
 # Copy Spark scripts to the Spark container
 echo "Copying Spark scripts to container..."
 docker cp spark/spark_streaming.py spark-master:/opt/bitnami/spark/
@@ -86,16 +92,25 @@ docker cp spark/spark_batch.py spark-master:/opt/bitnami/spark/
 echo "Creating necessary directories..."
 docker exec spark-master mkdir -p /opt/bitnami/spark/drivers
 docker exec spark-master mkdir -p /tmp/checkpoint
+docker exec bitsight-spark-worker-1 mkdir -p /opt/bitnami/spark/drivers
+docker exec bitsight-spark-worker-1 mkdir -p /tmp/checkpoint
 
-# Copy PostgreSQL driver to Spark container
+# Copy PostgreSQL driver to Spark containers
 echo "Copying PostgreSQL driver..."
 docker cp drivers/postgresql-42.6.0.jar spark-master:/opt/bitnami/spark/drivers/
+docker cp drivers/postgresql-42.6.0.jar bitsight-spark-worker-1:/opt/bitnami/spark/drivers/
+
+echo "Setting permissions for PostgreSQL driver..."
+docker exec --user root spark-master chmod 644 /opt/bitnami/spark/drivers/postgresql-42.6.0.jar
+docker exec --user root bitsight-spark-worker-1 chmod 644 /opt/bitnami/spark/drivers/postgresql-42.6.0.jar
 
 # Start the streaming job in the background
 echo "Starting Spark streaming job..."
 docker exec -d spark-master /opt/bitnami/spark/bin/spark-submit \
     --master spark://spark-master:7077 \
     --jars /opt/bitnami/spark/drivers/postgresql-42.6.0.jar \
+    --driver-class-path /opt/bitnami/spark/drivers/postgresql-42.6.0.jar \
+    --conf "spark.executor.extraClassPath=/opt/bitnami/spark/drivers/postgresql-42.6.0.jar" \
     /opt/bitnami/spark/spark_streaming.py
 
 # Start the WebSocket server in the background
@@ -107,15 +122,17 @@ WEBSOCKET_PID=$!
 sleep 10
 
 # Run the batch job
-echo "Running batch job..."
-docker exec spark-master /opt/bitnami/spark/bin/spark-submit \
-    --master spark://spark-master:7077 \
-    --jars /opt/bitnami/spark/drivers/postgresql-42.6.0.jar \
-    /opt/bitnami/spark/spark_batch.py
+# echo "Running batch job..."
+# docker exec spark-master /opt/bitnami/spark/bin/spark-submit \
+#     --master spark://spark-master:7077 \
+#     --jars /opt/bitnami/spark/drivers/postgresql-42.6.0.jar \
+#     --driver-class-path /opt/bitnami/spark/drivers/postgresql-42.6.0.jar \
+#     --conf "spark.executor.extraClassPath=/opt/bitnami/spark/drivers/postgresql-42.6.0.jar" \
+#     /opt/bitnami/spark/spark_batch.py
 
-echo "All components are running!"
-echo "You can access the dashboard at http://localhost:8080"
-echo "Press Ctrl+C to stop all services"
+# echo "All components are running!"
+# echo "You can access the dashboard at http://localhost:8080"
+# echo "Press Ctrl+C to stop all services"
 
 # Keep the script running and check for process status
 while true; do

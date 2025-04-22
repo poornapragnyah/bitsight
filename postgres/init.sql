@@ -51,6 +51,21 @@ CREATE TABLE IF NOT EXISTS stock_aggregates (
 	total_volume DECIMAL
 );
 
+CREATE TABLE IF NOT EXISTS stock_aggregates (
+	id SERIAL PRIMARY KEY,
+	start_datetime TIMESTAMP WITHOUT TIME ZONE,
+	end_datetime TIMESTAMP WITHOUT TIME ZONE,
+	average_price DECIMAL,
+	min_price DECIMAL,
+	max_price DECIMAL,
+	price_stddev DECIMAL,
+	total_volume DECIMAL,
+	average_volume DECIMAL,
+	min_volume DECIMAL,
+	max_volume DECIMAL,
+	total_records INTEGER
+);
+
 -- Grant table privileges to users
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO poorna;
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO sanya;

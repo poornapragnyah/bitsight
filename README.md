@@ -111,13 +111,13 @@ The batch processing will:
 
 1. Raw data:
 ```bash
-docker exec bitsight-postgres-1 psql -U rohan -d dbt -c "SELECT COUNT(*) FROM stock_data;"
-docker exec bitsight-postgres-1 psql -U rohan -d dbt -c "SELECT * FROM stock_data ORDER BY price_datetime DESC LIMIT 5;"
+docker exec bitsight-postgres-1 psql -U poorna -d dbt -c "SELECT COUNT(*) FROM stock_data;"
+docker exec bitsight-postgres-1 psql -U poorna -d dbt -c "SELECT * FROM stock_data ORDER BY price_datetime DESC LIMIT 5;"
 ```
 
 2. Aggregated data:
 ```bash
-docker exec bitsight-postgres-1 psql -U rohan -d dbt -c "SELECT * FROM stock_aggregates ORDER BY start_datetime DESC LIMIT 5;"
+docker exec bitsight-postgres-1 psql -U poorna -d dbt -c "SELECT * FROM stock_aggregates ORDER BY start_datetime DESC LIMIT 5;"
 ```
 
 ### Check Kafka Topics
@@ -180,9 +180,82 @@ docker exec broker kafka-console-consumer --bootstrap-server localhost:9092 --to
 - price_datetime: TIMESTAMP
 - volume: DECIMAL
 
-### stock_aggregates (Processed Data)
+### stock_aggregates_new (Processed Data)
 - id: SERIAL PRIMARY KEY
 - start_datetime: TIMESTAMP
 - end_datetime: TIMESTAMP
 - average_price: DECIMAL
 - total_volume: DECIMAL
+
+# Bitcoin Price Analysis Dashboard
+
+This project provides real-time and batch processing of Bitcoin price data with a web dashboard for visualization.
+
+## Database Commands
+
+### View Table Schemas
+```bash
+# View stock_data table schema
+docker exec -it bitsight-postgres-1 psql -U poorna -d bitsight -c "\d stock_data"
+
+# View stock_aggregatesa table schema
+docker exec -it bitsight-postgres-1 psql -U poorna -d bitsight -c "\d stock_aggregates"
+```
+
+### View Table Contents
+```bash
+# View latest 5 records from stock_data
+docker exec -it bitsight-postgres-1 psql -U poorna -d bitsight -c "SELECT * FROM stock_data ORDER BY id DESC LIMIT 5;"
+
+# View latest 5 records from stock_aggregatesa
+docker exec -it bitsight-postgres-1 psql -U poorna -d bitsight -c "SELECT * FROM stock_aggregates ORDER BY id DESC LIMIT 5;"
+```
+
+### View Table Statistics
+```bash
+# Count records in stock_data
+docker exec -it bitsight-postgres-1 psql -U poorna -d bitsight -c "SELECT COUNT(*) FROM stock_data;"
+
+# Count records in stock_aggregates
+docker exec -it bitsight-postgres-1 psql -U poorna -d bitsight -c "SELECT COUNT(*) FROM stock_aggregates;"
+
+# View data range in stock_data
+docker exec -it bitsight-postgres-1 psql -U poorna -d bitsight -c "SELECT MIN(price_datetime), MAX(price_datetime) FROM stock_data;"
+```
+
+### Format Output Nicely
+```bash
+# View stock_data with formatted output
+docker exec -it bitsight-postgres-1 psql -U poorna -d bitsight -c "\x on" -c "SELECT * FROM stock_data ORDER BY id DESC LIMIT 5;"
+
+# View stock_aggregates with formatted output
+docker exec -it bitsight-postgres-1 psql -U poorna -d bitsight -c "\x on" -c "SELECT * FROM stock_aggregates ORDER BY id DESC LIMIT 5;"
+```
+
+## Running the Application
+
+1. Start the containers:
+```bash
+docker-compose up -d
+```
+
+2. Run the batch processing:
+```bash
+docker exec -it bitsight-spark-1 /opt/bitnami/spark/bin/spark-submit /opt/bitnami/spark/spark_batch.py
+```
+
+3. Run the results consumer:
+```bash
+docker exec -it bitsight-spark-1 /opt/bitnami/spark/bin/spark-submit /opt/bitnami/spark/results_consumer.py
+```
+
+4. Start the WebSocket server:
+```bash
+python websocket_server.py
+```
+
+5. Open the dashboard:
+```bash
+python -m http.server 8000
+```
+Then open http://localhost:8000/dashboard.html in your browser.

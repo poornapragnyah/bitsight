@@ -34,14 +34,19 @@ services:
       - SPARK_SSL_ENABLED=no
       - SPARK_USER=spark
       - SPARK_CLASSPATH=/opt/bitnami/spark/jars/*:/opt/bitnami/spark/drivers/*
+      - SPARK_DRIVER_CLASSPATH=/opt/bitnami/spark/drivers/postgresql-42.6.0.jar
+      - SPARK_EXECUTOR_CLASSPATH=/opt/bitnami/spark/drivers/postgresql-42.6.0.jar
     ports:
       - '8080:8080'
       - '7077:7077'
     volumes:
       - ./drivers:/opt/bitnami/spark/drivers
+    networks:
+      - bitsight-network
 
   spark-worker:
     image: bitnami/spark:3.5.0
+    container_name: bitsight-spark-worker-1
     depends_on:
       - spark
     environment:
@@ -55,19 +60,31 @@ services:
       - SPARK_SSL_ENABLED=no
       - SPARK_USER=spark
       - SPARK_CLASSPATH=/opt/bitnami/spark/jars/*:/opt/bitnami/spark/drivers/*
+      - SPARK_DRIVER_CLASSPATH=/opt/bitnami/spark/drivers/postgresql-42.6.0.jar
+      - SPARK_EXECUTOR_CLASSPATH=/opt/bitnami/spark/drivers/postgresql-42.6.0.jar
     volumes:
       - ./drivers:/opt/bitnami/spark/drivers
+    networks:
+      - bitsight-network
 
   postgres:
     image: postgres:15-alpine
+    container_name: bitsight-postgres
     ports:
       - "5432:5432"
     volumes:
       - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - postgres_data:/var/lib/postgresql/data
     environment:
       POSTGRES_DB: bitsight
       POSTGRES_PASSWORD: poorna
       POSTGRES_USER: poorna
+    networks:
+      - bitsight-network
+
+networks:
+  bitsight-network:
+    driver: bridge
 
 volumes:
   postgres_data:

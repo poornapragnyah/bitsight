@@ -28,7 +28,7 @@ try:
     # Read data from PostgreSQL
     df = spark.read \
         .format("jdbc") \
-        .option("url", "jdbc:postgresql://bitsight-postgres-1:5432/bitsight") \
+        .option("url", "jdbc:postgresql://bitsight-postgres:5432/bitsight") \
         .option("dbtable", "stock_data") \
         .option("user", "poorna") \
         .option("password", "poorna") \

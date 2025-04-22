@@ -23,6 +23,7 @@ conf = SparkConf().setAppName("KafkaStreamReader") \
                   .set("spark.driver.memory", "1g") \
                   .set("spark.memory.offHeap.enabled", "true") \
                   .set("spark.memory.offHeap.size", "1g")
+                  .set("driver","/opt/bitnami/spark/drivers/postgresql-42.6.0.jar")
 
 # Create a SparkSession with the specified configuration properties
 spark = SparkSession.builder \

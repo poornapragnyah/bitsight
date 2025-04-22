@@ -7,21 +7,6 @@ set -e
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$SCRIPT_DIR"
 
-# Kill any existing processes on port 8081
-echo "Checking for existing processes on port 8081..."
-lsof -ti:8081 | xargs -r kill -9
-
-# Check if required files exist
-if [ ! -f "drivers/postgresql-42.6.0.jar" ]; then
-    echo "Error: PostgreSQL driver not found in drivers directory"
-    exit 1
-fi
-
-if [ ! -f "spark/spark_streaming.py" ] || [ ! -f "spark/spark_batch.py" ]; then
-    echo "Error: Spark scripts not found in spark directory"
-    exit 1
-fi
-
 # Create logs directory if it doesn't exist
 mkdir -p logs
 
@@ -31,6 +16,17 @@ handle_error() {
     echo "Check logs/$1.log for details"
     exit 1
 }
+
+# Check if required files exist
+if [ ! -f "spark/spark_streaming.py" ]; then
+    echo "Error: spark_streaming.py not found in spark directory"
+    exit 1
+fi
+
+if [ ! -f "kafka/rt_stock_producer.py" ] || [ ! -f "kafka/results_consumer.py" ] || [ ! -f "kafka/persist_db_consumer.py" ]; then
+    echo "Error: Kafka scripts not found in kafka directory"
+    exit 1
+fi
 
 # Copy all necessary files to the Spark container
 echo "Copying files to Spark container..."
@@ -72,8 +68,12 @@ cleanup() {
 # Set up trap for Ctrl+C
 trap cleanup SIGINT
 
-echo "All components started. Press Ctrl+C to stop."
-echo "Logs are being written to the logs/ directory"
+echo "All streaming components started. Press Ctrl+C to stop."
+echo "Logs are being written to the logs/ directory:"
+echo "- spark_streaming.log"
+echo "- rt_stock_producer.log"
+echo "- results_consumer.log"
+echo "- persist_db_consumer.log"
 
 # Wait for all processes
 wait 

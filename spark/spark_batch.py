@@ -71,36 +71,33 @@ try:
     logging.info(f"Total Records: {metrics['total_records']}")
     logging.info(f"Data Range: {metrics['start_datetime']} to {metrics['end_datetime']}")
 
-    # Write metrics to stock_aggregates_new table
+    # Write metrics to stock_aggregates table
     metrics_df = spark.createDataFrame([
         (
+            metrics['average_price'],
+            metrics['min_price'],
+            metrics['max_price'],
+            metrics['price_stddev'],
+            metrics['total_volume'],
+            metrics['average_volume'],
+            metrics['min_volume'],
+            metrics['max_volume'],
+            metrics['total_records'],
             metrics['start_datetime'],
-            metrics['end_datetime'],
-            float(metrics['average_price']),
-            float(metrics['min_price']),
-            float(metrics['max_price']),
-            float(metrics['price_stddev']),
-            float(metrics['total_volume']),
-            float(metrics['average_volume']),
-            float(metrics['min_volume']),
-            float(metrics['max_volume']),
-            int(metrics['total_records'])
+            metrics['end_datetime']
         )
-    ], ["start_datetime", "end_datetime", "average_price", "min_price", "max_price", 
-        "price_stddev", "total_volume", "average_volume", "min_volume", "max_volume", 
-        "total_records"])
-
+    ], ["average_price", "min_price", "max_price", "price_stddev", "total_volume", "average_volume", "min_volume", "max_volume", "total_records", "start_datetime", "end_datetime"])
     metrics_df.write \
         .format("jdbc") \
-        .option("url", "jdbc:postgresql://bitsight-postgres-1:5432/bitsight") \
-        .option("dbtable", "stock_aggregates_new") \
+        .option("url", "jdbc:postgresql://bitsight-postgres:5432/bitsight") \
+        .option("dbtable", "stock_aggregates_results") \
         .option("user", "poorna") \
         .option("password", "poorna") \
         .option("driver", "org.postgresql.Driver") \
         .mode("append") \
         .save()
 
-    logging.info("Successfully wrote metrics to stock_aggregates_new table")
+    logging.info("Successfully wrote metrics to stock_aggregates table")
 
 except Exception as e:
     logging.error(f"Error during batch processing: {str(e)}")

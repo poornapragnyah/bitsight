@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS stock_aggregates (
 	total_volume DECIMAL
 );
 
-CREATE TABLE IF NOT EXISTS stock_aggregates (
+CREATE TABLE IF NOT EXISTS stock_aggregates_results (
 	id SERIAL PRIMARY KEY,
 	start_datetime TIMESTAMP WITHOUT TIME ZONE,
 	end_datetime TIMESTAMP WITHOUT TIME ZONE,

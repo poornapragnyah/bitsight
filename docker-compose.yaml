@@ -5,6 +5,8 @@ services:
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - bitsight-network
 
   broker:
     image: confluentinc/cp-kafka:7.3.2
@@ -18,10 +20,12 @@ services:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://broker:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:9092,PLAINTEXT_INTERNAL://broker:29092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+    networks:
+      - bitsight-network
 
   spark:
     image: bitnami/spark:3.5.0
@@ -36,6 +40,7 @@ services:
       - SPARK_CLASSPATH=/opt/bitnami/spark/jars/*:/opt/bitnami/spark/drivers/*
       - SPARK_DRIVER_CLASSPATH=/opt/bitnami/spark/drivers/postgresql-42.6.0.jar
       - SPARK_EXECUTOR_CLASSPATH=/opt/bitnami/spark/drivers/postgresql-42.6.0.jar
+      - SPARK_JARS_PACKAGES=org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0
     ports:
       - '8080:8080'
       - '7077:7077'
@@ -62,6 +67,7 @@ services:
       - SPARK_CLASSPATH=/opt/bitnami/spark/jars/*:/opt/bitnami/spark/drivers/*
       - SPARK_DRIVER_CLASSPATH=/opt/bitnami/spark/drivers/postgresql-42.6.0.jar
       - SPARK_EXECUTOR_CLASSPATH=/opt/bitnami/spark/drivers/postgresql-42.6.0.jar
+      - SPARK_JARS_PACKAGES=org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0
     volumes:
       - ./drivers:/opt/bitnami/spark/drivers
     networks:

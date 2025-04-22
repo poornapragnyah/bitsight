@@ -11,7 +11,7 @@ from kafka import KafkaProducer
 
 # s: symbol, p: last price, t: unix time in ms, v: volume , c:conditions
 
-producer = KafkaProducer(bootstrap_servers='localhost:9092')
+producer = KafkaProducer(bootstrap_servers='broker:9092')
 
 
 def send_to_kafka(message):

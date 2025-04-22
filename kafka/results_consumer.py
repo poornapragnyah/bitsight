@@ -23,7 +23,7 @@ logging.basicConfig(
 try:
     # Connect to PostgreSQL
     conn = psycopg2.connect(
-        host="localhost",
+        host="bitsight-postgres",
         database="bitsight",
         user="poorna",
         password="poorna",
@@ -32,8 +32,13 @@ try:
     cur = conn.cursor()
     logging.info("Successfully connected to PostgreSQL")
 
-    # Initialize Kafka consumer
-    consumer = KafkaConsumer("SPARK_RESULTS")
+    # Initialize Kafka consumer with correct broker hostname
+    consumer = KafkaConsumer(
+        "SPARK_RESULTS",
+        bootstrap_servers=["broker:9092"],
+        auto_offset_reset='earliest',
+        group_id='results_consumer_group'
+    )
     logging.info("Successfully connected to Kafka")
 
     # Process messages
@@ -48,10 +53,10 @@ try:
                     start_datetime, end_datetime, average_price, total_volume
                 ) VALUES (%s, %s, %s, %s)
             """, [
-                data["window"]["start"],
-                data["window"]["end"],
-                data["avg(data.p)"],
-                data["sum(data.v)"]
+                data["start_datetime"],
+                data["end_datetime"],
+                data["average_price"],
+                data["total_volume"]
             ])
             
             conn.commit()

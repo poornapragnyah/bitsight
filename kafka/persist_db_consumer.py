@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 try:
     conn = psycopg2.connect(
-        host="localhost",
+        host="bitsight-postgres",
         database="bitsight",
         user="poorna",
         password="poorna",
@@ -35,7 +35,13 @@ values = []
 counter = 0
 total = 0
 
-consumer = KafkaConsumer("BINANCE_DB")
+# Configure Kafka consumer with correct broker hostname
+consumer = KafkaConsumer(
+    "BINANCE_DB",
+    bootstrap_servers=["broker:9092"],
+    auto_offset_reset='earliest',
+    group_id='db_consumer_group'
+)
 
 logger.info("Starting to consume messages from BINANCE_DB topic")
 

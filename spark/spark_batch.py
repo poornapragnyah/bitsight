@@ -21,7 +21,14 @@ logging.basicConfig(
 # Initialize Spark session
 spark = SparkSession.builder \
     .appName("PostgresBatch") \
+    .config("spark.sql.shuffle.partitions", "1") \
     .config("spark.jars", "/opt/bitnami/spark/drivers/postgresql-42.6.0.jar") \
+    .config("spark.driver.memory", "1g") \
+    .config("spark.executor.memory", "1g") \
+    .config("spark.driver.cores", "1") \
+    .config("spark.executor.cores", "1") \
+    .config("spark.driver.log", "spark_batch.log") \
+    .config("spark.executor.log", "spark_batch.log") \
     .getOrCreate()
 
 try:
@@ -35,7 +42,7 @@ try:
         .option("driver", "org.postgresql.Driver") \
         .load()
 
-    logging.info(f"Initial DataFrame count: {df.count()}")
+    # logging.info(f"Initial DataFrame count: {df.count()}")
     logging.info("DataFrame schema:")
     df.printSchema()
     logging.info("Sample data:")

@@ -51,12 +51,19 @@ try:
             cur.execute("""
                 INSERT INTO stock_aggregates (
                     start_datetime, end_datetime, average_price, total_volume
-                ) VALUES (%s, %s, %s, %s)
+                ) 
+                SELECT %s, %s, %s, %s
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM stock_aggregates 
+                    WHERE start_datetime = %s AND end_datetime = %s
+                )
             """, [
                 data["start_datetime"],
                 data["end_datetime"],
                 data["average_price"],
-                data["total_volume"]
+                data["total_volume"],
+                data["start_datetime"],
+                data["end_datetime"]
             ])
             
             conn.commit()

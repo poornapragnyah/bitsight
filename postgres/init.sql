@@ -56,14 +56,7 @@ CREATE TABLE IF NOT EXISTS stock_aggregates_results (
 	start_datetime TIMESTAMP WITHOUT TIME ZONE,
 	end_datetime TIMESTAMP WITHOUT TIME ZONE,
 	average_price DECIMAL,
-	min_price DECIMAL,
-	max_price DECIMAL,
-	price_stddev DECIMAL,
-	total_volume DECIMAL,
-	average_volume DECIMAL,
-	min_volume DECIMAL,
-	max_volume DECIMAL,
-	total_records INTEGER
+	total_volume DECIMAL
 );
 
 -- Grant table privileges to users

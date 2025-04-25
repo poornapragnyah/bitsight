@@ -1,0 +1,14 @@
+docker exec spark-master tail -f /opt/bitnami/spark/results_consumer.log
+
+The producer is running and sending data. Let's verify if the data is reaching Kafka:
+docker exec broker kafka-console-consumer --bootstrap-server localhost:9092 --topic SPARK_ANALYSIS --from-beginning --max-messages 5 --property print.timestamp=true --property print.key=true --property key.separator=" | "
+
+# Status of websocket and producer
+docker exec spark-master ps aux | grep -E "rt_stock_producer|websocket"
+
+docker exec spark-master ps aux | grep results_consumer
+
+docker exec spark-master spark-submit --master spark://spark-master:7077 --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0 --driver-class-path /opt/bitnami/spark/drivers/postgresql-42.6.0.jar --conf spark.sql.streaming.stateStore.stateSchemaCheck=false /opt/bitnami/spark/spark_streaming.py
+
+docker exec spark-master pkill -f "spark-submit"
+docker exec spark-master rm -rf /tmp/checkpoint /tmp/checkpoints

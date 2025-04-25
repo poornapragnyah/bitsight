@@ -34,7 +34,12 @@ conf = SparkConf().setAppName("KafkaStreamReader") \
                   .set("spark.cores.max", "1") \
                   .set("spark.task.cpus", "1") \
                   .set("spark.streaming.concurrentJobs", "1") \
-                  .set("spark.streaming.kafka.maxRatePerPartition", "100")
+                  .set("spark.streaming.kafka.maxRatePerPartition", "100") \
+                  .set("spark.sql.streaming.stateStore.stateSchemaCheck", "false") \
+                  .set("spark.sql.streaming.stateStore.providerClass", "org.apache.spark.sql.execution.streaming.state.HDFSBackedStateStoreProvider") \
+                  .set("spark.sql.streaming.stateStore.minDeltasForSnapshot", "10") \
+                  .set("spark.sql.streaming.stateStore.maxDeltasForSnapshot", "100") \
+                  .set("spark.sql.streaming.stateStore.minBatchesToRetain", "100")
 
 # Create a SparkSession with the specified configuration properties
 spark = SparkSession.builder \
@@ -91,16 +96,23 @@ parsed_df = kafka_df.select(from_json(col("value"), schema).alias("data")) \
 # Perform windowed aggregation
 logging.info("Performing windowed aggregation")
 windowed_stream = parsed_df \
-    .groupBy(window(col("datetime"), "10 seconds", "10 seconds")) \
+    .groupBy(window(col("datetime"), "10 seconds", "10 seconds", startTime="0 seconds")) \
     .agg(
         avg(col("p")).alias("average_price"),
         _sum(col("v")).alias("total_volume")
-    )
+    ) \
+    .select(
+        col("window.start").alias("start_datetime"),
+        col("window.end").alias("end_datetime"),
+        col("average_price"),
+        col("total_volume")
+    ) \
+    .distinct()  # Ensure we don't have duplicate windows
 
 # Write to console for debugging
 logging.info("Starting console output stream")
 console_write = windowed_stream.writeStream \
-    .outputMode("update") \
+    .outputMode("complete") \
     .format("console") \
     .option("truncate", False) \
     .trigger(processingTime="10 seconds") \
@@ -110,10 +122,10 @@ console_write = windowed_stream.writeStream \
 logging.info("Starting Kafka output stream to SPARK_RESULTS topic")
 kafka_write = windowed_stream \
     .select(
-        expr("to_json(struct(window.start as start_datetime, window.end as end_datetime, average_price, total_volume)) as value")
+        expr("to_json(struct(start_datetime, end_datetime, average_price, total_volume)) as value")
     ) \
     .writeStream \
-    .outputMode("update") \
+    .outputMode("complete") \
     .format("kafka") \
     .option("kafka.bootstrap.servers", "broker:9092") \
     .option("topic", "SPARK_RESULTS") \
